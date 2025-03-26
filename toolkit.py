@@ -15,7 +15,7 @@ class DataParser:
         data (pd.Series): Dataset of the file
         '''
         try:
-            data = pd.read_csv(file_path, index_col=index_col)
+            data = pd.read_csv(file_path, index_col=index_col, header=None)
             return data
         except Exception as e:
             print(e)
