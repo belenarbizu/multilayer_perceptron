@@ -20,8 +20,12 @@ class Network():
                 self.data[col] = (self.data[col] - self.mean[col]) / self.std[col]
 
 
+    def weighted_sum(self):
+        sum = 0
+        return sum
+
 def main():
-    if (len(sys.argv) < 2):
+    if (len(sys.argv) != 2):
         print("Usage: python3 ./train.py dataset_name")
         sys.exit(1)
     nn = Network(sys.argv[1])
