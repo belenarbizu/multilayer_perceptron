@@ -1,4 +1,5 @@
 from toolkit import DataParser
+from layer import Layer
 import sys
 import numpy as np
 import argparse
@@ -10,8 +11,12 @@ class Network():
         vars_list = ["layer", "epochs", "loss", "batch_size", "learning_rate"]
         for var, name in zip(vars, vars_list):
             setattr(self, name, vars[name])
-        self.weights = {}
-        self.bias = {}
+        self.n_inputs = self.data.iloc[:,2:].shape[1]
+        self.n_layers = len(self.layer)
+        if len(self.layer) < 2:
+            self.n_layers = 2
+            self.layer.append(self.layer[0])
+        self.data_training = self.data.iloc[:,2:]
         self.mean = {}
         self.std = {}
 
@@ -22,6 +27,23 @@ class Network():
                 self.mean[col] = np.mean(self.data[col])
                 self.std[col] = np.std(self.data[col])
                 self.data[col] = (self.data[col] - self.mean[col]) / self.std[col]
+
+    def create_layers(self):
+        input_layer = Layer(self.n_inputs, self.layer[0])
+        weighted_sum = layer.forward(self.data_training)
+        output = layer.softmax(weighted_sum)
+        
+        for n in range(self.n_layers):
+            if n == self.n_layers - 1:
+                layer = Layer(self.layer[n], self.layer[n])
+            else:
+                layer = Layer(self.layer[n], self.layer[n + 1])
+            weighted_sum = layer.forward(output)
+            output = layer.softmax(weighted_sum)
+
+        output_layer = Layer(self.layer[2], 2)
+        weighted_sum = layer.forward(output)
+        output = layer.softmax(weighted_sum)
 
 
 def main():
