@@ -4,7 +4,7 @@ import pandas as pd
 import sys
 
 def split_dataset(data):
-    data = DataParser.replace_nan_values(DataParser.open_file(data, 0))
+    data = DataParser.replace_nan_values(DataParser.open_file(data, False))
 
     np.random.seed(42)
     train_ratio = 0.8
