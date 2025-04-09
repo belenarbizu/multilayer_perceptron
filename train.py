@@ -28,22 +28,28 @@ class Network():
                 self.std[col] = np.std(self.data[col])
                 self.data[col] = (self.data[col] - self.mean[col]) / self.std[col]
 
+
     def create_layers(self):
-        input_layer = Layer(self.n_inputs, self.layer[0])
-        weighted_sum = layer.forward(self.data_training)
-        output = layer.softmax(weighted_sum)
+        input_layer = Layer(self.n_inputs, int(self.layer[0]))
+        weighted_sum = input_layer.forward(self.data_training)
+        output = input_layer.softmax(weighted_sum)
         
         for n in range(self.n_layers):
             if n == self.n_layers - 1:
-                layer = Layer(self.layer[n], self.layer[n])
+                layer = Layer(int(self.layer[n]), int(self.layer[n]))
             else:
-                layer = Layer(self.layer[n], self.layer[n + 1])
+                layer = Layer(int(self.layer[n]), int(self.layer[n + 1]))
             weighted_sum = layer.forward(output)
             output = layer.softmax(weighted_sum)
 
-        output_layer = Layer(self.layer[2], 2)
-        weighted_sum = layer.forward(output)
-        output = layer.softmax(weighted_sum)
+        output_layer = Layer(int(self.layer[2]), 2)
+        weighted_sum = output_layer.forward(output)
+        output = output_layer.softmax(weighted_sum)
+        breakpoint()
+
+    def categorical_cross_entropy(self, true_values, predicted_values):
+        loss = 0
+        return loss
 
 
 def main():
@@ -57,6 +63,7 @@ def main():
 
     nn = Network("train.csv", vars(args))
     nn.standardize()
+    nn.create_layers()
 
 if __name__ == "__main__":
     main()
