@@ -31,7 +31,7 @@ class Network():
     def create_layers(self):
         input_layer = Layer(self.n_inputs, self.layer[0])
         weighted_sum = layer.forward(self.data_training)
-        output = layer.softmax(weighted_sum)
+        output = DataParser.relu(weighted_sum)
         
         for n in range(self.n_layers):
             if n == self.n_layers - 1:
@@ -39,20 +39,20 @@ class Network():
             else:
                 layer = Layer(self.layer[n], self.layer[n + 1])
             weighted_sum = layer.forward(output)
-            output = layer.softmax(weighted_sum)
+            output = DataParser.relu(weighted_sum)
 
         output_layer = Layer(self.layer[2], 2)
         weighted_sum = layer.forward(output)
-        output = layer.softmax(weighted_sum)
+        output = DataParser.softmax(weighted_sum)
 
 
 def main():
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
-    parser.add_argument('-l', '--layer', nargs='+', help='Layers of model')
-    parser.add_argument('-e', '--epochs', help='Number of epochs')
+    parser.add_argument('-l', '--layer', nargs='+', type=int, help='Layers of model')
+    parser.add_argument('-e', '--epochs', type=int, help='Number of epochs')
     parser.add_argument('-s', '--loss', help='Loss function')
-    parser.add_argument('-b', '--batch_size', help='Size of the batch')
-    parser.add_argument('-r', '--learning_rate', help='Learning rate')
+    parser.add_argument('-b', '--batch_size', type=int, help='Size of the batch')
+    parser.add_argument('-r', '--learning_rate', type=float, help='Learning rate')
     args = parser.parse_args()
 
     nn = Network("train.csv", vars(args))
