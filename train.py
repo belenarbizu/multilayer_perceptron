@@ -7,7 +7,7 @@ import argparse
 class Network():
 
     def __init__(self, file, vars):
-        self.data = DataParser.replace_nan_values(DataParser.open_file(file, 0))
+        self.data = DataParser.replace_nan_values(DataParser.open_file(file, None, 0))
 
         vars_list = ["layer", "epochs", "loss", "batch_size", "learning_rate"]
         for var, name in zip(vars, vars_list):
@@ -16,10 +16,10 @@ class Network():
         self.categories = ["M", "B"]
         labels = {}
         for cat in self.categories:
-            labels[cat] = (self.data.iloc[1:,0:1] == cat).astype(int)
+            labels[cat] = (self.data.iloc[:,0:1] == cat).astype(int)
         for cat, label in labels.items():
             self.data[f"{cat}_label"] = label
-
+        print(self.data.head())
         self.n_inputs = self.data.iloc[:,2:].shape[1] 
         self.n_layers = len(self.layer)
         if len(self.layer) < 2:
@@ -56,11 +56,11 @@ class Network():
         weighted_sum = output_layer.forward(output)
         output = DataParser.softmax(weighted_sum)
         loss = self.categorical_cross_entropy(self.data.loc[:, ["M_label", "B_label"]], output)
-        # el loss esta mal
 
 
     def categorical_cross_entropy(self, true_values, predicted_values):
-        loss = - np.sum(true_values * np.log(predicted_values))
+        epsilon = 1e-15
+        loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1) / len(true_values)
         return loss
 
 

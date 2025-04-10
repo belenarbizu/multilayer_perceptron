@@ -4,7 +4,7 @@ import numpy as np
 
 class DataParser:
     @staticmethod
-    def open_file(file_path, index_col="Index"):
+    def open_file(file_path, index_col=None, header=None):
         '''
         Opens a file and returns it
 
@@ -15,7 +15,7 @@ class DataParser:
         data (pd.Series): Dataset of the file
         '''
         try:
-            data = pd.read_csv(file_path, index_col=index_col, header=None)
+            data = pd.read_csv(file_path, index_col=index_col, header=header)
             return data
         except Exception as e:
             print(e)
