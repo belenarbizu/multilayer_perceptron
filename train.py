@@ -46,8 +46,10 @@ class Network():
 
 
     def create_layers(self):
+        self.layers = []
         self.train_data_training = self.train_data.iloc[:,2:-2]
         input_layer = Layer(self.n_inputs, self.layer[0])
+        self.layers.append(input_layer)
         weighted_sum = input_layer.forward(self.train_data_training)
         output = DataParser.relu(weighted_sum)
     
@@ -56,10 +58,12 @@ class Network():
                 layer = Layer(self.layer[n], self.layer[n])
             else:
                 layer = Layer(self.layer[n], self.layer[n + 1])
+            self.layers.append(layer)
             weighted_sum = layer.forward(output)
             output = DataParser.relu(weighted_sum)
 
         output_layer = Layer(self.layer[self.n_layers - 1], 2)
+        self.layers.append(output_layer)
         weighted_sum = output_layer.forward(output)
         output = DataParser.softmax(weighted_sum)
         #loss
