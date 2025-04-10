@@ -5,7 +5,7 @@ import sys
 
 def split_dataset(data):
     data = DataParser.replace_nan_values(DataParser.open_file(data, None))
-    print(data.head())
+
     np.random.seed(42)
     train_ratio = 0.8
     index = np.arange(data.shape[0])
@@ -16,6 +16,9 @@ def split_dataset(data):
     test_index = index[train_size:]
     train_set = data.iloc[train_index]
     test_set = data.iloc[test_index]
+
+    print(f"x_train shape: {train_set.shape}")
+    print(f"x_valid shape: {test_set.shape}")
 
     return train_set, test_set
 

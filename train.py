@@ -6,44 +6,51 @@ import argparse
 
 class Network():
 
-    def __init__(self, file, vars):
-        self.data = DataParser.replace_nan_values(DataParser.open_file(file, None, 0))
+    def __init__(self, train_file, test_file, vars):
+        self.train_data = DataParser.replace_nan_values(DataParser.open_file(train_file, 0, 0))
+        self.test_data = DataParser.replace_nan_values(DataParser.open_file(test_file, 0, 0))
 
         vars_list = ["layer", "epochs", "loss", "batch_size", "learning_rate"]
         for var, name in zip(vars, vars_list):
             setattr(self, name, vars[name])
 
         self.categories = ["M", "B"]
-        labels = {}
+        labels_train = {}
+        labels_test = {}
         for cat in self.categories:
-            labels[cat] = (self.data.iloc[:,0:1] == cat).astype(int)
-        for cat, label in labels.items():
-            self.data[f"{cat}_label"] = label
-        print(self.data.head())
-        self.n_inputs = self.data.iloc[:,2:].shape[1] 
+            labels_train[cat] = (self.train_data.iloc[:,0:1] == cat).astype(int)
+            labels_test[cat] = (self.test_data.iloc[:,0:1] == cat).astype(int)
+
+        for cat, label in labels_train.items():
+            self.train_data[f"{cat}_label"] = label
+        
+        for cat, label in labels_test.items():
+            self.test_data[f"{cat}_label"] = label
+
+        self.n_inputs = self.train_data.iloc[:,2:-2].shape[1] 
         self.n_layers = len(self.layer)
         if len(self.layer) < 2:
             self.n_layers = 2
             self.layer.append(self.layer[0])
 
-        self.data_training = self.data.iloc[:,2:]
         self.mean = {}
         self.std = {}
 
 
     def standardize(self):
-        for col in self.data.columns:
-            if (self.data[col].dtype == "int64" or self.data[col].dtype == "float64"):
-                self.mean[col] = np.mean(self.data[col])
-                self.std[col] = np.std(self.data[col])
-                self.data[col] = (self.data[col] - self.mean[col]) / self.std[col]
+        for col in self.train_data.columns:
+            if ((self.train_data[col].dtype == "int64" or self.train_data[col].dtype == "float64") and col != "M_label" and col != "B_label"):
+                self.mean[col] = np.mean(self.train_data[col])
+                self.std[col] = np.std(self.train_data[col])
+                self.train_data[col] = (self.train_data[col] - self.mean[col]) / self.std[col]
 
 
     def create_layers(self):
+        self.train_data_training = self.train_data.iloc[:,2:-2]
         input_layer = Layer(self.n_inputs, self.layer[0])
-        weighted_sum = input_layer.forward(self.data_training)
+        weighted_sum = input_layer.forward(self.train_data_training)
         output = DataParser.relu(weighted_sum)
-      
+    
         for n in range(self.n_layers):
             if n == self.n_layers - 1:
                 layer = Layer(self.layer[n], self.layer[n])
@@ -55,13 +62,17 @@ class Network():
         output_layer = Layer(self.layer[self.n_layers - 1], 2)
         weighted_sum = output_layer.forward(output)
         output = DataParser.softmax(weighted_sum)
-        loss = self.categorical_cross_entropy(self.data.loc[:, ["M_label", "B_label"]], output)
+        #loss
+        loss = self.categorical_cross_entropy(self.train_data.loc[:, ["M_label", "B_label"]], output)
+        self.print_info(0, loss, 0)
+        #val_loss
+        #loss = self.categorical_cross_entropy(self.test_data.loc[:, ["M_label", "B_label"]], output)
 
 
     def categorical_cross_entropy(self, true_values, predicted_values):
         epsilon = 1e-15
         loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1) / len(true_values)
-        return loss
+        return np.mean(loss)
 
 
     def weights_gradient(self, x, y_label, y_predicted):
@@ -89,7 +100,7 @@ def main():
     parser.add_argument('-r', '--learning_rate', type=float, default=0.1, help='Learning rate')
     args = parser.parse_args()
 
-    nn = Network("train.csv", vars(args))
+    nn = Network("train.csv", "test.csv", vars(args))
     nn.standardize()
     nn.create_layers()
 
