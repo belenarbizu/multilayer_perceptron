@@ -48,10 +48,9 @@ class Network():
     def create_layers(self):
         self.layers = []
         self.train_data_training = self.train_data.iloc[:,2:-2]
+
         input_layer = Layer(self.n_inputs, self.layer[0])
         self.layers.append(input_layer)
-        weighted_sum = input_layer.forward(self.train_data_training)
-        output = DataParser.relu(weighted_sum)
     
         for n in range(self.n_layers):
             if n == self.n_layers - 1:
@@ -59,18 +58,28 @@ class Network():
             else:
                 layer = Layer(self.layer[n], self.layer[n + 1])
             self.layers.append(layer)
-            weighted_sum = layer.forward(output)
-            output = DataParser.relu(weighted_sum)
 
         output_layer = Layer(self.layer[self.n_layers - 1], 2)
         self.layers.append(output_layer)
-        weighted_sum = output_layer.forward(output)
-        output = DataParser.softmax(weighted_sum)
-        #loss
-        loss = self.categorical_cross_entropy(self.train_data.loc[:, ["M_label", "B_label"]], output)
-        self.print_info(0, loss, 0)
-        #val_loss
-        #loss = self.categorical_cross_entropy(self.test_data.loc[:, ["M_label", "B_label"]], output)
+
+
+    def train(self):
+        x = self.train_data_training.values
+        y = self.train_data[["M_label", "B_label"]].values
+
+        for epoch in range(self.epochs):
+            output = x
+            for layer in range(len(self.layers) - 1):
+                output = layer.forward(output)
+                output = DataParser.relu(output)
+
+            output = self.layers[-1].forward(output)
+            y_pred = DataParser.softmax(output)
+
+            loss = self.categorical_cross_entropy(y, y_pred)
+
+            if epoch % 10 == 0:
+                self.print_info(epoch, loss, 0)
 
 
     def categorical_cross_entropy(self, true_values, predicted_values):
