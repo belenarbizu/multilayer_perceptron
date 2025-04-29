@@ -13,14 +13,14 @@ def split_dataset(data):
     train_size = int(data.shape[0] * train_ratio)
 
     train_index = index[:train_size]
-    test_index = index[train_size:]
-    train_set = data.iloc[train_index]
-    test_set = data.iloc[test_index]
+    valid_index = index[train_size:]
+    train_set = data.iloc[train_index, 2:]
+    valid_set = data.iloc[valid_index, 2:]
 
     print(f"x_train shape: {train_set.shape}")
-    print(f"x_valid shape: {test_set.shape}")
+    print(f"x_valid shape: {valid_set.shape}")
 
-    return train_set, test_set
+    return train_set, valid_set
 
 def main():
     if (len(sys.argv) != 2):
@@ -28,7 +28,7 @@ def main():
         sys.exit(1)
     train, test = split_dataset(sys.argv[1])
     train.to_csv("train.csv", index=False)
-    test.to_csv("test.csv", index=False)
+    test.to_csv("validation.csv", index=False)
 
 if __name__ == "__main__":
     main()

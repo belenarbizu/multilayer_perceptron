@@ -27,9 +27,9 @@ class Network():
         for cat, label in labels_test.items():
             self.test_data[f"{cat}_label"] = label
 
-        self.n_inputs = self.train_data.iloc[:,2:-2].shape[1] 
+        self.n_inputs = self.train_data.iloc[:,:-2].shape[1]
         self.n_layers = len(self.layer)
-        if len(self.layer) < 2:
+        if self.n_layers == 1:
             self.n_layers = 2
             self.layer.append(self.layer[0])
 
@@ -47,16 +47,16 @@ class Network():
 
     def create_layers(self):
         self.layers = []
-        self.train_data_training = self.train_data.iloc[:,2:-2]
+        self.train_data_training = self.train_data.iloc[:,:-2]
 
         input_layer = Layer(self.n_inputs, self.layer[0])
         self.layers.append(input_layer)
     
-        for n in range(self.n_layers):
-            if n == self.n_layers - 1:
-                layer = Layer(self.layer[n], self.layer[n])
+        for num in range(self.n_layers):
+            if num == self.n_layers - 1:
+                layer = Layer(self.layer[num], self.layer[num])
             else:
-                layer = Layer(self.layer[n], self.layer[n + 1])
+                layer = Layer(self.layer[num], self.layer[num + 1])
             self.layers.append(layer)
 
         output_layer = Layer(self.layer[self.n_layers - 1], 2)
@@ -70,8 +70,12 @@ class Network():
         for epoch in range(self.epochs):
             output = x
             for layer in range(len(self.layers) - 1):
-                output = layer.forward(output)
+                output = self.layers[layer].forward(output)
                 output = DataParser.relu(output)
+                # w_grad = self.weights_gradient(x, y, output)
+                # b_grad = self.bias_gradient(y, output)
+                # self.layers[layer].weights = self.layers[layer].weights - self.learning_rate * w_grad
+                # self.layers[layer].bias = self.layers[layer].bias - self.learning_rate * b_grad
 
             output = self.layers[-1].forward(output)
             y_pred = DataParser.softmax(output)
@@ -113,9 +117,10 @@ def main():
     parser.add_argument('-r', '--learning_rate', type=float, default=0.1, help='Learning rate')
     args = parser.parse_args()
 
-    nn = Network("train.csv", "test.csv", vars(args))
+    nn = Network("train.csv", "validation.csv", vars(args))
     nn.standardize()
     nn.create_layers()
+    nn.train()
 
 if __name__ == "__main__":
     main()
