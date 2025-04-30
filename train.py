@@ -18,14 +18,17 @@ class Network():
         labels_train = {}
         labels_test = {}
         for cat in self.categories:
-            labels_train[cat] = (self.train_data.iloc[:,0:1] == cat).astype(int)
-            labels_test[cat] = (self.test_data.iloc[:,0:1] == cat).astype(int)
+            labels_train[cat] = (self.train_data.iloc[:,0] == cat).astype(int)
+            labels_test[cat] = (self.test_data.iloc[:,0] == cat).astype(int)
 
         for cat, label in labels_train.items():
             self.train_data[f"{cat}_label"] = label
         
         for cat, label in labels_test.items():
             self.test_data[f"{cat}_label"] = label
+
+        self.train_data = self.train_data.iloc[:,1:]
+        self.test_data = self.test_data.iloc[:,1:]
 
         self.n_inputs = self.train_data.iloc[:,:-2].shape[1]
         self.n_layers = len(self.layer)
@@ -72,15 +75,17 @@ class Network():
             for layer in range(len(self.layers) - 1):
                 output = self.layers[layer].forward(output)
                 output = DataParser.relu(output)
-                # w_grad = self.weights_gradient(x, y, output)
-                # b_grad = self.bias_gradient(y, output)
-                # self.layers[layer].weights = self.layers[layer].weights - self.learning_rate * w_grad
-                # self.layers[layer].bias = self.layers[layer].bias - self.learning_rate * b_grad
 
-            output = self.layers[-1].forward(output)
-            y_pred = DataParser.softmax(output)
-
+            out = self.layers[-1].forward(output)
+            y_pred = DataParser.softmax(out)
             loss = self.categorical_cross_entropy(y, y_pred)
+
+            # w_grad = 
+            # b_grad = 
+
+            # self.layers[layer].weights = self.layers[layer].weights - self.learning_rate * w_grad
+            # self.layers[layer].bias = self.layers[layer].bias - self.learning_rate * b_grad
+
 
             if epoch % 10 == 0:
                 self.print_info(epoch, loss, 0)
@@ -89,19 +94,8 @@ class Network():
     def categorical_cross_entropy(self, true_values, predicted_values):
         epsilon = 1e-15
         loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1) / len(true_values)
+        breakpoint()
         return np.mean(loss)
-
-
-    def weights_gradient(self, x, y_label, y_predicted):
-        m = len(y_label)
-        grad = 1 / m * np.dot(x.T, (y_predicted - y_label))
-        return grad
-    
-    
-    def bias_gradient(self, y_label, y_predicted):
-        m = len(y_label)
-        grad = 1 / m * np.sum(y_predicted - y_label)
-        return grad
 
 
     def print_info(self, epoch, loss, val_loss):

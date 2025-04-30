@@ -14,11 +14,8 @@ def split_dataset(data):
 
     train_index = index[:train_size]
     valid_index = index[train_size:]
-    train_set = data.iloc[train_index, 2:]
-    valid_set = data.iloc[valid_index, 2:]
-
-    print(f"x_train shape: {train_set.shape}")
-    print(f"x_valid shape: {valid_set.shape}")
+    train_set = data.iloc[train_index]
+    valid_set = data.iloc[valid_index]
 
     return train_set, valid_set
 
