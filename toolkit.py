@@ -77,12 +77,8 @@ class DataParser:
         exp_values = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
         output = exp_values / np.sum(exp_values, axis=1, keepdims=True)
         return output
-    
-    @staticmethod
-    def softmax_derivate(output):
-        return (output * (1 - output))
 
     @staticmethod
-    def relu_derivate(output):
-        return np.greater(output, 0).astype(np.float32)
+    def relu_derivative(output):
+        return (output > 0).astype(float)
         

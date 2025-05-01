@@ -80,12 +80,17 @@ class Network():
             y_pred = DataParser.softmax(out)
             loss = self.categorical_cross_entropy(y, y_pred)
 
-            # w_grad = 
-            # b_grad = 
-
-            # self.layers[layer].weights = self.layers[layer].weights - self.learning_rate * w_grad
-            # self.layers[layer].bias = self.layers[layer].bias - self.learning_rate * b_grad
-
+            dinputs = y_pred - y
+            
+            for i in reversed(range(len(self.layers))):
+                layer = self.layers[i]
+                dinputs = layer.backward(dinputs)
+                if i != len(self.layers) - 1 and i != 0:
+                    dinputs *= DataParser.relu_derivative(layer.output)
+            
+            for layer in self.layers:
+                layer.weights -= self.learning_rate * layer.dweights
+                layer.biases -= self.learning_rate * layer.dbiases
 
             if epoch % 10 == 0:
                 self.print_info(epoch, loss, 0)
@@ -94,7 +99,6 @@ class Network():
     def categorical_cross_entropy(self, true_values, predicted_values):
         epsilon = 1e-15
         loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1) / len(true_values)
-        breakpoint()
         return np.mean(loss)
 
 
