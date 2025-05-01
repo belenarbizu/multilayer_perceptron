@@ -118,8 +118,8 @@ class Network:
 
 def main():
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
-    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[24, 24] ,help='Layers of model')
-    parser.add_argument('-e', '--epochs', type=int, default=1000, help='Number of epochs')
+    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[24, 24, 24, 12, 12] ,help='Layers of model')
+    parser.add_argument('-e', '--epochs', type=int, default=500, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
     parser.add_argument('-b', '--batch_size', type=int, default=None, help='Size of the batch')
     parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
