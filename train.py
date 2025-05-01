@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import argparse
 
-class Network():
+class Network:
 
     def __init__(self, train_file, test_file, vars):
         self.train_data = DataParser.replace_nan_values(DataParser.open_file(train_file, 0, 0))
@@ -46,6 +46,9 @@ class Network():
                 self.mean[col] = np.mean(self.train_data[col])
                 self.std[col] = np.std(self.train_data[col])
                 self.train_data[col] = (self.train_data[col] - self.mean[col]) / self.std[col]
+        for col in self.test_data.columns:
+            if ((self.test_data[col].dtype == "int64" or self.test_data[col].dtype == "float64") and col != "M_label" and col != "B_label"):
+                self.test_data[col] = (self.test_data[col] - self.mean[col]) / self.std[col]
 
 
     def create_layers(self):
@@ -69,36 +72,43 @@ class Network():
     def train(self):
         x = self.train_data_training.values
         y = self.train_data[["M_label", "B_label"]].values
+        x_val = self.test_data.iloc[:,:-2].values
+        y_val = self.test_data[["M_label", "B_label"]].values
 
         for epoch in range(self.epochs):
             output = x
             for layer in range(len(self.layers) - 1):
                 output = self.layers[layer].forward(output)
-                output = DataParser.relu(output)
 
             out = self.layers[-1].forward(output)
             y_pred = DataParser.softmax(out)
             loss = self.categorical_cross_entropy(y, y_pred)
 
             dinputs = y_pred - y
-            
             for i in reversed(range(len(self.layers))):
                 layer = self.layers[i]
-                dinputs = layer.backward(dinputs)
                 if i != len(self.layers) - 1 and i != 0:
                     dinputs *= DataParser.relu_derivative(layer.output)
+                dinputs = layer.backward(dinputs)
             
             for layer in self.layers:
                 layer.weights -= self.learning_rate * layer.dweights
-                layer.biases -= self.learning_rate * layer.dbiases
+                layer.bias -= self.learning_rate * layer.dbiases
+
+            val_output = x_val
+            for layer in range(len(self.layers) - 1):
+                val_output = self.layers[layer].forward(val_output)
+            out_val = self.layers[-1].forward(val_output)
+            y_val_pred = DataParser.softmax(out_val)
+            val_loss = self.categorical_cross_entropy(y_val, y_val_pred)
 
             if epoch % 10 == 0:
-                self.print_info(epoch, loss, 0)
+                self.print_info(epoch, loss, val_loss)
 
 
     def categorical_cross_entropy(self, true_values, predicted_values):
         epsilon = 1e-15
-        loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1) / len(true_values)
+        loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1)
         return np.mean(loss)
 
 
@@ -112,7 +122,7 @@ def main():
     parser.add_argument('-e', '--epochs', type=int, default=1000, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
     parser.add_argument('-b', '--batch_size', type=int, default=None, help='Size of the batch')
-    parser.add_argument('-r', '--learning_rate', type=float, default=0.1, help='Learning rate')
+    parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
     args = parser.parse_args()
 
     nn = Network("train.csv", "validation.csv", vars(args))
