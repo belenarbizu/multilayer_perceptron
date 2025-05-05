@@ -128,7 +128,6 @@ class Network:
         print(f"epoch {epoch}/{self.epochs} - loss: {loss} - val_loss: {val_loss}")
     
     def evaluate_accuracy(self, x, y):
-        # Paso 1: Pase hacia adelante
         output = x
         for layer in range(len(self.layers) - 1):
             output = self.layers[layer].forward(output)
@@ -136,13 +135,22 @@ class Network:
         out = self.layers[-1].forward(output)
         y_pred = DataParser.softmax(out)
         
-        # Paso 2: Convertir probabilidades en etiquetas
         predicted_labels = np.argmax(y_pred, axis=1)
         true_labels = np.argmax(y, axis=1)
 
-        # Paso 3: Calcular precisión
         accuracy = np.mean(predicted_labels == true_labels)
         return accuracy
+
+    def save_model(self):
+        model_data = {
+            "layer_sizes": self.layer,
+            "weights": [layer.weights for layer in self.layers],
+            "biases": [layer.bias for layer in self.layers],
+            "mean": self.mean,
+            "std": self.std,
+            "categories": self.categories
+        }
+        np.save("saved_model.npy", model_data)
 
 
 def main():
@@ -158,6 +166,7 @@ def main():
     nn.standardize()
     nn.create_layers()
     nn.train()
+    nn.save_model()
 
 if __name__ == "__main__":
     main()
