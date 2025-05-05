@@ -3,6 +3,7 @@ from layer import Layer
 import sys
 import numpy as np
 import argparse
+import matplotlib.pyplot as plt
 
 class Network:
 
@@ -80,7 +81,7 @@ class Network:
         self.train_accuracies = []
         self.val_accuracies = []
 
-        for epoch in range(self.epochs):
+        for epoch in range(1, self.epochs + 1):
             for i in range(0, m, self.batch_size):
                 x_batch = x[i:i + self.batch_size]
                 y_batch = y[i:i + self.batch_size]
@@ -92,8 +93,6 @@ class Network:
                 out = self.layers[-1].forward(output)
                 y_pred = DataParser.softmax(out)
                 loss = self.categorical_cross_entropy(y_batch, y_pred)
-                # self.train_losses.append(loss)
-                # self.train_accuracies.append(self.evaluate_accuracy(x, y))
 
                 dinputs = y_pred - y_batch
                 for i in reversed(range(len(self.layers))):
@@ -108,25 +107,44 @@ class Network:
                     layer.bias -= self.learning_rate * layer.dbiases
 
             self.save_loss(x, y)
+            y_val_pred = self.validation_perf(x_val)
 
-            val_output = x_val
-            for layer in range(len(self.layers) - 1):
-                val_output = self.layers[layer].forward(val_output)
-            out_val = self.layers[-1].forward(val_output)
-            y_val_pred = DataParser.softmax(out_val)
             val_loss = self.categorical_cross_entropy(y_val, y_val_pred)
-
             self.val_losses.append(val_loss)
             self.val_accuracies.append(self.evaluate_accuracy(x_val, y_val))
 
-            if epoch % 10 == 0:
+            if epoch == 1 or epoch % 10 == 0:
                 self.print_info(epoch, loss, val_loss)
-            
-        train_accuracy = self.evaluate_accuracy(x, y)
-        val_accuracy = self.evaluate_accuracy(x_val, y_val)
 
-        print(f"Precisión en entrenamiento: {train_accuracy * 100:.2f}%")
-        print(f"Precisión en validación: {val_accuracy * 100:.2f}%")
+
+    def graphs(self):
+        fig, axs = plt.subplots(1, 2, figsize=(25,13))
+        epoch = range(0, self.epochs)
+
+        axs[0].plot(epoch, self.train_losses, label="training loss")
+        axs[0].plot(epoch, self.val_losses, label="validation loss")
+        axs[0].set_xlabel("epochs")
+        axs[0].set_ylabel("loss")
+        axs[0].legend()
+        axs[0].grid(True)
+
+        axs[1].plot(epoch, self.train_accuracies, label="training acc")
+        axs[1].plot(epoch, self.val_accuracies, label="validation acc")
+        axs[1].set_xlabel("epochs")
+        axs[1].set_ylabel("accuracy")
+        axs[1].legend()
+
+        plt.tight_layout()
+        plt.show()
+
+
+    def validation_perf(self, x_val):
+        val_output = x_val
+        for layer in range(len(self.layers) - 1):
+            val_output = self.layers[layer].forward(val_output)
+        out_val = self.layers[-1].forward(val_output)
+        y_val_pred = DataParser.softmax(out_val)
+        return y_val_pred
 
 
     def save_loss(self, x, y):
@@ -137,8 +155,10 @@ class Network:
         y_pred = DataParser.softmax(out)
         loss = self.categorical_cross_entropy(y, y_pred)
         accuracy = self.evaluate_accuracy(x, y)
+
         self.train_losses.append(loss)
         self.train_accuracies.append(accuracy)
+
 
     def categorical_cross_entropy(self, true_values, predicted_values):
         epsilon = 1e-15
@@ -148,7 +168,8 @@ class Network:
 
     def print_info(self, epoch, loss, val_loss):
         print(f"epoch {epoch}/{self.epochs} - loss: {loss} - val_loss: {val_loss}")
-    
+
+
     def evaluate_accuracy(self, x, y):
         output = x
         for layer in range(len(self.layers) - 1):
@@ -162,6 +183,7 @@ class Network:
 
         accuracy = np.mean(predicted_labels == true_labels)
         return accuracy
+
 
     def save_model(self):
         model_data = {
@@ -178,9 +200,9 @@ class Network:
 def main():
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
     parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
-    parser.add_argument('-e', '--epochs', type=int, default=200, help='Number of epochs')
+    parser.add_argument('-e', '--epochs', type=int, default=100, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
-    parser.add_argument('-b', '--batch_size', type=int, default=64, help='Size of the batch')
+    parser.add_argument('-b', '--batch_size', type=int, default=128, help='Size of the batch')
     parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
     args = parser.parse_args()
 
@@ -189,6 +211,7 @@ def main():
     nn.create_layers()
     nn.train()
     nn.save_model()
+    nn.graphs()
 
 if __name__ == "__main__":
     main()
