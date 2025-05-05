@@ -47,7 +47,7 @@ class Network:
                 self.std[col] = np.std(self.train_data[col])
                 self.train_data[col] = (self.train_data[col] - self.mean[col]) / self.std[col]
         for col in self.test_data.columns:
-            if ((self.test_data[col].dtype == "int64" or self.test_data[col].dtype == "float64") and col != "M_label" and col != "B_label"):
+            if col in self.mean and ((self.test_data[col].dtype == "int64" or self.test_data[col].dtype == "float64") and col != "M_label" and col != "B_label"):
                 self.test_data[col] = (self.test_data[col] - self.mean[col]) / self.std[col]
 
 
@@ -60,12 +60,12 @@ class Network:
     
         for num in range(self.n_layers):
             if num == self.n_layers - 1:
-                layer = Layer(self.layer[num], self.layer[num])
+                layer = Layer(self.layer[num], self.layer[num], activation='relu')
             else:
-                layer = Layer(self.layer[num], self.layer[num + 1])
+                layer = Layer(self.layer[num], self.layer[num + 1], activation='relu')
             self.layers.append(layer)
 
-        output_layer = Layer(self.layer[self.n_layers - 1], 2)
+        output_layer = Layer(self.layer[self.n_layers - 1], 2, activation='softmax')
         self.layers.append(output_layer)
 
 
@@ -74,26 +74,32 @@ class Network:
         y = self.train_data[["M_label", "B_label"]].values
         x_val = self.test_data.iloc[:,:-2].values
         y_val = self.test_data[["M_label", "B_label"]].values
+        m = len(x)
 
         for epoch in range(self.epochs):
-            output = x
-            for layer in range(len(self.layers) - 1):
-                output = self.layers[layer].forward(output)
+            for i in range(0, m, self.batch_size):
+                x_batch = x[i:i + self.batch_size]
+                y_batch = y[i:i + self.batch_size]
 
-            out = self.layers[-1].forward(output)
-            y_pred = DataParser.softmax(out)
-            loss = self.categorical_cross_entropy(y, y_pred)
+                output = x_batch
+                for layer in range(len(self.layers) - 1):
+                    output = self.layers[layer].forward(output)
 
-            dinputs = y_pred - y
-            for i in reversed(range(len(self.layers))):
-                layer = self.layers[i]
-                if i != len(self.layers) - 1 and i != 0:
-                    dinputs *= DataParser.relu_derivative(layer.output)
-                dinputs = layer.backward(dinputs)
-            
-            for layer in self.layers:
-                layer.weights -= self.learning_rate * layer.dweights
-                layer.bias -= self.learning_rate * layer.dbiases
+                out = self.layers[-1].forward(output)
+                y_pred = DataParser.softmax(out)
+                loss = self.categorical_cross_entropy(y_batch, y_pred)
+
+                dinputs = y_pred - y_batch
+                for i in reversed(range(len(self.layers))):
+                    layer = self.layers[i]
+                    if i != len(self.layers) - 1:
+                        dinputs *= DataParser.relu_derivative(layer.output)
+                    dinputs = layer.backward(dinputs)
+                
+                lambda_l2 = 0.001
+                for layer in self.layers:
+                    layer.weights -= self.learning_rate * layer.dweights + lambda_l2 * layer.weights
+                    layer.bias -= self.learning_rate * layer.dbiases
 
             val_output = x_val
             for layer in range(len(self.layers) - 1):
@@ -104,6 +110,12 @@ class Network:
 
             if epoch % 10 == 0:
                 self.print_info(epoch, loss, val_loss)
+            
+        train_accuracy = self.evaluate_accuracy(x, y)
+        val_accuracy = self.evaluate_accuracy(x_val, y_val)
+
+        print(f"Precisión en entrenamiento: {train_accuracy * 100:.2f}%")
+        print(f"Precisión en validación: {val_accuracy * 100:.2f}%")
 
 
     def categorical_cross_entropy(self, true_values, predicted_values):
@@ -114,14 +126,31 @@ class Network:
 
     def print_info(self, epoch, loss, val_loss):
         print(f"epoch {epoch}/{self.epochs} - loss: {loss} - val_loss: {val_loss}")
+    
+    def evaluate_accuracy(self, x, y):
+        # Paso 1: Pase hacia adelante
+        output = x
+        for layer in range(len(self.layers) - 1):
+            output = self.layers[layer].forward(output)
+        
+        out = self.layers[-1].forward(output)
+        y_pred = DataParser.softmax(out)
+        
+        # Paso 2: Convertir probabilidades en etiquetas
+        predicted_labels = np.argmax(y_pred, axis=1)
+        true_labels = np.argmax(y, axis=1)
+
+        # Paso 3: Calcular precisión
+        accuracy = np.mean(predicted_labels == true_labels)
+        return accuracy
 
 
 def main():
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
-    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[24, 24, 24, 12, 12] ,help='Layers of model')
-    parser.add_argument('-e', '--epochs', type=int, default=500, help='Number of epochs')
+    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
+    parser.add_argument('-e', '--epochs', type=int, default=200, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
-    parser.add_argument('-b', '--batch_size', type=int, default=None, help='Size of the batch')
+    parser.add_argument('-b', '--batch_size', type=int, default=64, help='Size of the batch')
     parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
     args = parser.parse_args()
 
