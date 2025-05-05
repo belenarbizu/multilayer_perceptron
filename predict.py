@@ -5,12 +5,12 @@ from toolkit import DataParser
 
 class Predict:
     def __init__(self, data_file):
-        self.data = DataParser.replace_nan_values(DataParser.open_file(data_file, 0, 0))
+        self.data = DataParser.replace_nan_values(DataParser.open_file(data_file, None, 0))
 
-        model_data = np.load("model_data.npy", allow_pickle=True).item()
-        self.layer = model_data["layer"]
-        self.weight = model_data["weight"]
-        self.bias = model_data["bias"]
+        model_data = np.load("saved_model.npy", allow_pickle=True).item()
+        self.layer = model_data["layer_sizes"]
+        self.weight = model_data["weights"]
+        self.bias = model_data["biases"]
         self.mean = model_data["mean"]
         self.std = model_data["std"]
         self.categories = model_data["categories"]
@@ -24,13 +24,16 @@ class Predict:
     def create_layers(self):
         self.layers = []
         self.n_layers = len(self.layer)
-        #n_inputs = self.data.iloc[:,:-2].shape[1]
-        n_inputs = 30
+        n_inputs = self.data.shape[1]
+
         input_layer = Layer(n_inputs, self.layer[0])
         self.layers.append(input_layer)
 
-        for num in range(self.n_layers - 1):
-            layer = Layer(self.layer[num], self.layer[num + 1], activation='relu')
+        for num in range(self.n_layers):
+            if num == self.n_layers - 1:
+                layer = Layer(self.layer[num], self.layer[num], activation='relu')
+            else:
+                layer = Layer(self.layer[num], self.layer[num + 1], activation='relu')
             self.layers.append(layer)
         
         output_layer = Layer(self.layer[self.n_layers - 1], 2, activation='softmax')

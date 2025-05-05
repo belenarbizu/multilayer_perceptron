@@ -39,6 +39,10 @@ class Network:
 
         self.mean = {}
         self.std = {}
+        self.train_losses = []
+        self.val_losses = []
+        self.train_accuracies = []
+        self.val_accuracies = []
 
 
     def standardize(self):
@@ -76,10 +80,6 @@ class Network:
         x_val = self.test_data.iloc[:,:-2].values
         y_val = self.test_data[["M_label", "B_label"]].values
         m = len(x)
-        self.train_losses = []
-        self.val_losses = []
-        self.train_accuracies = []
-        self.val_accuracies = []
 
         for epoch in range(1, self.epochs + 1):
             for i in range(0, m, self.batch_size):
@@ -186,6 +186,7 @@ class Network:
 
 
     def save_model(self):
+        breakpoint()
         model_data = {
             "layer_sizes": self.layer,
             "weights": [layer.weights for layer in self.layers],
