@@ -6,8 +6,32 @@ import argparse
 import matplotlib.pyplot as plt
 
 class Network:
+    '''
+    Implements a fully connected neural network for binary classification (malignant/benign).
 
+    Attributes:
+        train_data (DataFrame): Preprocessed training data.
+        test_data (DataFrame): Preprocessed validation data.
+        layer (list): List of hidden layer sizes.
+        epochs (int): Number of training epochs.
+        loss (str): Loss function used.
+        batch_size (int): Batch size used during training.
+        learning_rate (float): Learning rate for weight updates.
+        categories (list): List of target categories ("M", "B").
+        layers (list): List of Layer objects composing the network.
+        mean (dict): Mean values used for standardization.
+        std (dict): Standard deviation values used for standardization.
+        train_losses, val_losses, train_accuracies, val_accuracies (list): Training/validation metrics per epoch.
+    '''
     def __init__(self, train_file, test_file, vars):
+        '''
+        Initializes the neural network, loads and preprocesses data, and sets model configuration.
+
+        Args:
+            train_file (str): Path to the training CSV file.
+            test_file (str): Path to the validation CSV file.
+            vars (dict): Dictionary with model configuration.
+        '''
         self.train_data = DataParser.replace_nan_values(DataParser.open_file(train_file, 0, 0))
         self.test_data = DataParser.replace_nan_values(DataParser.open_file(test_file, 0, 0))
 
@@ -46,6 +70,9 @@ class Network:
 
 
     def standardize(self):
+        '''
+        Standardizes training and validation data using the training set's mean and standard deviation.
+        '''
         for col in self.train_data.columns:
             if (self.train_data[col].dtype == "int64" or self.train_data[col].dtype == "float64") and not col.endswith('_label'):
                 self.mean[col] = np.mean(self.train_data[col])
@@ -57,17 +84,17 @@ class Network:
 
 
     def create_layers(self):
+        '''
+        Creates the layers of the neural network based on the specified architecture.
+        '''
         self.layers = []
         self.train_data_training = self.train_data.iloc[:,:-2]
 
         input_layer = Layer(self.n_inputs, self.layer[0])
         self.layers.append(input_layer)
     
-        for num in range(self.n_layers):
-            if num == self.n_layers - 1:
-                layer = Layer(self.layer[num], self.layer[num], activation='relu')
-            else:
-                layer = Layer(self.layer[num], self.layer[num + 1], activation='relu')
+        for num in range(1, self.n_layers):
+            layer = Layer(self.layer[num - 1], self.layer[num], activation='relu')
             self.layers.append(layer)
 
         output_layer = Layer(self.layer[self.n_layers - 1], 2, activation='softmax')
@@ -75,6 +102,10 @@ class Network:
 
 
     def train(self):
+        '''
+        Trains the neural network using backpropagation and updates weights based on the loss function.
+        Tracks and stores loss and accuracy for each epoch.
+        '''
         x = self.train_data_training.values
         y = self.train_data[["M_label", "B_label"]].values
         x_val = self.test_data.iloc[:,:-2].values
@@ -118,6 +149,9 @@ class Network:
 
 
     def graphs(self):
+        '''
+        Plots the training and validation loss and accuracy over epochs.
+        '''
         fig, axs = plt.subplots(1, 2, figsize=(25,13))
         epoch = range(0, self.epochs)
 
@@ -139,6 +173,15 @@ class Network:
 
 
     def validation_perf(self, x_val):
+        '''
+        Evaluates the performance of the model on the validation set.
+
+        Args:
+            x_val (ndarray): Validation feature data.
+
+        Returns:
+            ndarray: Softmax predictions.
+        '''
         val_output = x_val
         for layer in range(len(self.layers) - 1):
             val_output = self.layers[layer].forward(val_output)
@@ -148,6 +191,13 @@ class Network:
 
 
     def save_loss(self, x, y):
+        '''
+        Saves the training loss and accuracy for the current epoch.
+
+        Args:
+            x (ndarray): Input features.
+            y (ndarray): True labels.
+        '''
         output = x
         for layer in range(len(self.layers) - 1):
             output = self.layers[layer].forward(output)
@@ -161,16 +211,43 @@ class Network:
 
 
     def categorical_cross_entropy(self, true_values, predicted_values):
+        '''
+        Computes the categorical cross-entropy loss.
+        Args:
+            true_values (ndarray): True labels.
+            predicted_values (ndarray): Softmax predictions.
+
+        Returns:
+            float: Loss value.
+        '''
         epsilon = 1e-15
         loss = - np.sum(true_values * np.log(predicted_values + epsilon), axis=1)
         return np.mean(loss)
 
 
     def print_info(self, epoch, loss, val_loss):
+        '''
+        Prints the training and validation loss for the current epoch.
+        
+        Args:
+            epoch (int): Current epoch number.
+            loss (float): Training loss for the current epoch.
+            val_loss (float): Validation loss for the current epoch.
+        '''
         print(f"epoch {epoch}/{self.epochs} - loss: {loss} - val_loss: {val_loss}")
 
 
     def evaluate_accuracy(self, x, y):
+        '''
+        Evaluates the accuracy of the model on the given data.
+
+        Args:
+            x (ndarray): Input features.
+            y (ndarray): True labels.
+        
+        Returns:
+            float: Accuracy of the model.
+        '''
         output = x
         for layer in range(len(self.layers) - 1):
             output = self.layers[layer].forward(output)
@@ -186,7 +263,9 @@ class Network:
 
 
     def save_model(self):
-        breakpoint()
+        '''
+        Saves the model's architecture, weights, biases, mean, std, and categories to a .npy file.
+        '''
         model_data = {
             "layer_sizes": self.layer,
             "weights": [layer.weights for layer in self.layers],
@@ -199,6 +278,10 @@ class Network:
 
 
 def main():
+    '''
+    Entry point for the program: parses command-line arguments, initializes and trains the model,
+    saves the trained model, and plots training metrics.
+    '''
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
     parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
     parser.add_argument('-e', '--epochs', type=int, default=100, help='Number of epochs')

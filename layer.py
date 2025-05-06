@@ -25,7 +25,6 @@ class Layer:
         n_neurons (int): Number of neurons in the layer.
         activation (str): Activation function to use.
         '''
-        #ESTAN MAL CONSTRUIDAS LAS LAYERS
         self.weights = np.random.randn(n_inputs, n_neurons) * np.sqrt(2.0 / n_inputs)
         self.bias = np.zeros((1, n_neurons))
         self.activation = activation
