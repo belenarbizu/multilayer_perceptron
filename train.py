@@ -111,6 +111,8 @@ class Network:
         x_val = self.test_data.iloc[:,:-2].values
         y_val = self.test_data[["M_label", "B_label"]].values
         m = len(x)
+        counter = 0
+        best_loss = float("inf")
 
         for epoch in range(1, self.epochs + 1):
             for i in range(0, m, self.batch_size):
@@ -144,8 +146,17 @@ class Network:
             self.val_losses.append(val_loss)
             self.val_accuracies.append(self.evaluate_accuracy(x_val, y_val))
 
+            if val_loss < best_loss:
+                best_loss = val_loss
+            else:
+                counter += 1
+
             if epoch == 1 or epoch % 10 == 0:
                 self.print_info(epoch, loss, val_loss)
+            
+            if counter >= 20:
+                #tengo que coger los datos de hace 20 epochs
+                break
 
 
     def graphs(self):
@@ -153,7 +164,7 @@ class Network:
         Plots the training and validation loss and accuracy over epochs.
         '''
         fig, axs = plt.subplots(1, 2, figsize=(25,13))
-        epoch = range(0, self.epochs)
+        epoch = range(0, len(self.train_losses))
 
         axs[0].plot(epoch, self.train_losses, label="training loss")
         axs[0].plot(epoch, self.val_losses, label="validation loss")
