@@ -4,6 +4,7 @@ import sys
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+import copy
 
 class Network:
     '''
@@ -18,10 +19,12 @@ class Network:
         batch_size (int): Batch size used during training.
         learning_rate (float): Learning rate for weight updates.
         categories (list): List of target categories ("M", "B").
+        adam (bool): Flag to use Adam optimizer.
         layers (list): List of Layer objects composing the network.
         mean (dict): Mean values used for standardization.
         std (dict): Standard deviation values used for standardization.
         train_losses, val_losses, train_accuracies, val_accuracies (list): Training/validation metrics per epoch.
+        early_stop (bool): Flag for early stopping.
     '''
     def __init__(self, train_file, test_file, vars):
         '''
@@ -35,7 +38,7 @@ class Network:
         self.train_data = DataParser.replace_nan_values(DataParser.open_file(train_file, 0, 0))
         self.test_data = DataParser.replace_nan_values(DataParser.open_file(test_file, 0, 0))
 
-        vars_list = ["layer", "epochs", "loss", "batch_size", "learning_rate"]
+        vars_list = ["layer", "epochs", "loss", "batch_size", "learning_rate", "adam"]
         for var, name in zip(vars, vars_list):
             setattr(self, name, vars[name])
 
@@ -67,6 +70,7 @@ class Network:
         self.val_losses = []
         self.train_accuracies = []
         self.val_accuracies = []
+        self.early_stop = False
 
 
     def standardize(self):
@@ -99,6 +103,13 @@ class Network:
 
         output_layer = Layer(self.layer[self.n_layers - 1], 2, activation='softmax')
         self.layers.append(output_layer)
+
+        if self.adam:
+            for layer in self.layers:
+                layer.m_w = np.zeros_like(layer.weights)
+                layer.v_w = np.zeros_like(layer.weights)
+                layer.m_b = np.zeros_like(layer.bias)
+                layer.v_b = np.zeros_like(layer.bias)
 
 
     def train(self):
@@ -135,9 +146,12 @@ class Network:
                     dinputs = layer.backward(dinputs)
                 
                 lambda_l2 = 0.001
-                for layer in self.layers:
-                    layer.weights -= self.learning_rate * (layer.dweights + lambda_l2 * layer.weights)
-                    layer.bias -= self.learning_rate * layer.dbiases
+                if self.adam:
+                    self.adam_optimizer(lambda_l2, epoch)
+                else:
+                    for layer in self.layers:
+                        layer.weights -= self.learning_rate * (layer.dweights + lambda_l2 * layer.weights)
+                        layer.bias -= self.learning_rate * layer.dbiases
 
             self.save_loss(x, y)
             y_val_pred = self.validation_perf(x_val)
@@ -148,26 +162,70 @@ class Network:
 
             if val_loss < best_loss:
                 best_loss = val_loss
+                counter = 0
+                best_weights = [copy.deepcopy(layer.weights) for layer in self.layers]
+                best_biases = [copy.deepcopy(layer.bias) for layer in self.layers]
             else:
                 counter += 1
 
             if epoch == 1 or epoch % 10 == 0:
                 self.print_info(epoch, loss, val_loss)
             
-            if counter >= 20:
-                #tengo que coger los datos de hace 20 epochs
+            if counter >= 10:
+                for i in range(len(self.layers)):
+                    self.layers[i].weights = best_weights[i]
+                    self.layers[i].bias = best_biases[i]
+                self.early_stop = True
+                print(f"Early stopping at epoch {epoch}")
                 break
 
 
+    def adam_optimizer(self, lambda_l2, epoch):
+        '''
+        Updates weights and biases using the Adam optimization algorithm with L2 regularization.
+
+        Args:
+            lambda_l2 (float): L2 regularization parameter.
+            epoch (int): Current epoch.
+        '''
+        beta1 = 0.9
+        beta2 = 0.999
+        epsilon = 1e-8
+        t = epoch
+
+        for layer in self.layers:
+            layer.m_w = beta1 * layer.m_w + (1 - beta1) * (layer.dweights + lambda_l2 * layer.weights)
+            layer.v_w = beta2 * layer.v_w + (1 - beta2) * ((layer.dweights + lambda_l2 * layer.weights) ** 2)
+
+            m_w_hat = layer.m_w / (1 - beta1 ** t)
+            v_w_hat = layer.v_w / (1 - beta2 ** t)
+
+            layer.weights -= self.learning_rate * m_w_hat / (np.sqrt(v_w_hat) + epsilon)
+
+            layer.m_b = beta1 * layer.m_b + (1 - beta1) * layer.dbiases
+            layer.v_b = beta2 * layer.v_b + (1 - beta2) * (layer.dbiases ** 2)
+
+            m_b_hat = layer.m_b / (1 - beta1 ** t)
+            v_b_hat = layer.v_b / (1 - beta2 ** t)
+
+            layer.bias -= self.learning_rate * m_b_hat / (np.sqrt(v_b_hat) + epsilon)
+
     def graphs(self):
         '''
-        Plots the training and validation loss and accuracy over epochs.
+        Plots two subplots:
+            - Training and validation loss over epochs.
+            - Training and validation accuracy over epochs.
+            
+        If early stopping was used, indicates the best epoch with a vertical red line.
         '''
         fig, axs = plt.subplots(1, 2, figsize=(25,13))
         epoch = range(0, len(self.train_losses))
+        best_epoch = self.val_losses.index(min(self.val_losses))
 
         axs[0].plot(epoch, self.train_losses, label="training loss")
         axs[0].plot(epoch, self.val_losses, label="validation loss")
+        if self.early_stop:
+            axs[0].axvline(best_epoch, color='red', linestyle='--', label='Early stop')
         axs[0].set_xlabel("epochs")
         axs[0].set_ylabel("loss")
         axs[0].legend()
@@ -175,6 +233,8 @@ class Network:
 
         axs[1].plot(epoch, self.train_accuracies, label="training acc")
         axs[1].plot(epoch, self.val_accuracies, label="validation acc")
+        if self.early_stop:
+            axs[1].axvline(best_epoch, color='red', linestyle='--', label='Early stop')
         axs[1].set_xlabel("epochs")
         axs[1].set_ylabel("accuracy")
         axs[1].legend()
@@ -299,6 +359,7 @@ def main():
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
     parser.add_argument('-b', '--batch_size', type=int, default=128, help='Size of the batch')
     parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--adam', action='store_true', help='Use Adam optimizer instead of SGD')
     args = parser.parse_args()
 
     nn = Network("train.csv", "validation.csv", vars(args))
