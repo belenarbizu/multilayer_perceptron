@@ -35,8 +35,8 @@ class Network:
             test_file (str): Path to the validation CSV file.
             vars (dict): Dictionary with model configuration.
         '''
-        self.train_data = DataParser.replace_nan_values(DataParser.open_file(train_file, 0, 0))
-        self.test_data = DataParser.replace_nan_values(DataParser.open_file(test_file, 0, 0))
+        self.train_data = DataParser.replace_nan_values(DataParser.open_file(train_file, 0))
+        self.test_data = DataParser.replace_nan_values(DataParser.open_file(test_file, 0))
 
         vars_list = ["layer", "epochs", "loss", "batch_size", "learning_rate", "adam"]
         for var, name in zip(vars, vars_list):
@@ -78,12 +78,12 @@ class Network:
         Standardizes training and validation data using the training set's mean and standard deviation.
         '''
         for col in self.train_data.columns:
-            if (self.train_data[col].dtype == "int64" or self.train_data[col].dtype == "float64") and not col.endswith('_label'):
+            if (self.train_data[col].dtype == "int64" or self.train_data[col].dtype == "float64") and not str(col).endswith('_label'):
                 self.mean[col] = np.mean(self.train_data[col])
                 self.std[col] = np.std(self.train_data[col])
                 self.train_data[col] = (self.train_data[col] - self.mean[col]) / self.std[col]
         for col in self.test_data.columns:
-            if col in self.mean and ((self.test_data[col].dtype == "int64" or self.test_data[col].dtype == "float64") and not col.endswith('_label')):
+            if (self.test_data[col].dtype == "int64" or self.test_data[col].dtype == "float64") and not str(col).endswith('_label'):
                 self.test_data[col] = (self.test_data[col] - self.mean[col]) / self.std[col]
 
 
@@ -355,7 +355,7 @@ def main():
     '''
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
     parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
-    parser.add_argument('-e', '--epochs', type=int, default=100, help='Number of epochs')
+    parser.add_argument('-e', '--epochs', type=int, default=150, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
     parser.add_argument('-b', '--batch_size', type=int, default=128, help='Size of the batch')
     parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')

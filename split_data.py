@@ -50,8 +50,8 @@ def main():
         sys.exit(1)
 
     train, test = split_dataset(sys.argv[1])
-    train.to_csv("train.csv", index=False)
-    test.to_csv("validation.csv", index=False)
+    train.to_csv("train.csv", index=False, header=False)
+    test.to_csv("validation.csv", index=False, header=False)
 
 if __name__ == "__main__":
     main()
