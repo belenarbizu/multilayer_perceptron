@@ -25,7 +25,7 @@ class Predict:
         Args:
             data_file (str): Path to the input CSV file for prediction.
         '''
-        self.data = DataParser.replace_nan_values(DataParser.open_file(data_file, None, 0))
+        self.data = DataParser.replace_nan_values(DataParser.open_file(data_file, None))
         self.num_data = self.data.iloc[:,2:]
 
         try:

@@ -154,6 +154,7 @@ class Network:
                         layer.bias -= self.learning_rate * layer.dbiases
 
             self.save_loss(x, y)
+            f1 = self.evaluate_f1(x, y)
             y_val_pred = self.validation_perf(x_val)
 
             val_loss = self.categorical_cross_entropy(y_val, y_val_pred)
@@ -169,7 +170,7 @@ class Network:
                 counter += 1
 
             if epoch == 1 or epoch % 10 == 0:
-                self.print_info(epoch, loss, val_loss)
+                self.print_info(epoch, loss, val_loss, f1)
             
             if counter >= 10:
                 for i in range(len(self.layers)):
@@ -296,7 +297,7 @@ class Network:
         return np.mean(loss)
 
 
-    def print_info(self, epoch, loss, val_loss):
+    def print_info(self, epoch, loss, val_loss, f1):
         '''
         Prints the training and validation loss for the current epoch.
         
@@ -305,7 +306,7 @@ class Network:
             loss (float): Training loss for the current epoch.
             val_loss (float): Validation loss for the current epoch.
         '''
-        print(f"epoch {epoch}/{self.epochs} - loss: {loss} - val_loss: {val_loss}")
+        print(f"epoch {epoch}/{self.epochs} - loss: {loss} - val_loss: {val_loss} - f1: {f1}")
 
 
     def evaluate_accuracy(self, x, y):
@@ -333,6 +334,28 @@ class Network:
         return accuracy
 
 
+    def evaluate_f1(self, x, y):
+        #precision = true positives TP / (true positives TP + false positives FP)
+        #recall = true positives TP / (true positives TP + false negatives FN)
+        output = x
+        for layer in range(len(self.layers) - 1):
+            output = self.layers[layer].forward(output)
+        
+        out = self.layers[-1].forward(output)
+        y_pred = DataParser.softmax(out)
+        
+        predicted_labels = np.argmax(y_pred, axis=1)
+        true_labels = np.argmax(y, axis=1)
+
+        TP = np.sum((true_labels == 1) & (predicted_labels == 1))
+        FP = np.sum((true_labels == 0) & (predicted_labels == 1))
+        FN = np.sum((true_labels == 1) & (predicted_labels == 0))
+        precision = TP / (TP + FP)
+        recall = TP / (TP + FN)
+        f1 = (2 * precision * recall) / (precision + recall)
+        return f1
+
+
     def save_model(self):
         '''
         Saves the model's architecture, weights, biases, mean, std, and categories to a .npy file.
@@ -354,7 +377,7 @@ def main():
     saves the trained model, and plots training metrics.
     '''
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
-    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
+    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 8] ,help='Layers of model')
     parser.add_argument('-e', '--epochs', type=int, default=150, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
     parser.add_argument('-b', '--batch_size', type=int, default=128, help='Size of the batch')
