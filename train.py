@@ -335,8 +335,16 @@ class Network:
 
 
     def evaluate_f1(self, x, y):
-        #precision = true positives TP / (true positives TP + false positives FP)
-        #recall = true positives TP / (true positives TP + false negatives FN)
+        '''
+        Evaluates the F1 score of the model on the given data.
+
+        Args:
+            x (ndarray): Input features.
+            y (ndarray): True labels.
+        
+        Returns:
+            float: F1 score of the model.
+        '''
         output = x
         for layer in range(len(self.layers) - 1):
             output = self.layers[layer].forward(output)
@@ -347,11 +355,11 @@ class Network:
         predicted_labels = np.argmax(y_pred, axis=1)
         true_labels = np.argmax(y, axis=1)
 
-        TP = np.sum((true_labels == 1) & (predicted_labels == 1))
-        FP = np.sum((true_labels == 0) & (predicted_labels == 1))
-        FN = np.sum((true_labels == 1) & (predicted_labels == 0))
-        precision = TP / (TP + FP)
-        recall = TP / (TP + FN)
+        true_positive = np.sum((true_labels == 1) & (predicted_labels == 1))
+        false_positive = np.sum((true_labels == 0) & (predicted_labels == 1))
+        false_negative = np.sum((true_labels == 1) & (predicted_labels == 0))
+        precision = true_positive / (true_positive + false_positive)
+        recall = true_positive / (true_positive + false_negative)
         f1 = (2 * precision * recall) / (precision + recall)
         return f1
 
@@ -377,11 +385,11 @@ def main():
     saves the trained model, and plots training metrics.
     '''
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
-    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 8] ,help='Layers of model')
+    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
     parser.add_argument('-e', '--epochs', type=int, default=150, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
-    parser.add_argument('-b', '--batch_size', type=int, default=128, help='Size of the batch')
-    parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('-b', '--batch_size', type=int, default=256, help='Size of the batch')
+    parser.add_argument('-r', '--learning_rate', type=float, default=0.005, help='Learning rate')
     parser.add_argument('--adam', action='store_true', help='Use Adam optimizer instead of SGD')
     args = parser.parse_args()
 
