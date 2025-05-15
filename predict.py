@@ -50,6 +50,7 @@ class Predict:
             if col in self.mean:
                 self.num_data[col] = (self.num_data[col] - self.mean[col]) / self.std[col]
 
+
     def create_layers(self):
         '''
         Reconstructs the neural network architecture using saved layer sizes and initializes each Layer.
@@ -86,7 +87,8 @@ class Predict:
         labels = [self.categories[i] for i in prediction]
         b_label = (self.data.iloc[:,1] == "B").astype(int)
         self.binary_cross_entropy(np.array(b_label, dtype=np.int32), np.array(y_pred, dtype=np.float64))
-    
+
+
     def binary_cross_entropy(self, y, y_pred):
         '''
         Calculates the binary cross-entropy loss between true labels and predicted probabilities.

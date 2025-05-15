@@ -211,6 +211,7 @@ class Network:
 
             layer.bias -= self.learning_rate * m_b_hat / (np.sqrt(v_b_hat) + epsilon)
 
+
     def graphs(self):
         '''
         Plots two subplots:
