@@ -241,7 +241,8 @@ class Network:
         axs[1].legend()
 
         plt.tight_layout()
-        plt.show()
+        plt.savefig("plot.png")
+        plt.close(fig)
 
 
     def validation_perf(self, x_val):
