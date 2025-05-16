@@ -387,11 +387,11 @@ def main():
     saves the trained model, and plots training metrics.
     '''
     parser = argparse.ArgumentParser(description='Predicts whether a cancer is malignant or benign')
-    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 4] ,help='Layers of model')
+    parser.add_argument('-l', '--layer', nargs='+', type=int, default=[16, 16] ,help='Layers of model')
     parser.add_argument('-e', '--epochs', type=int, default=150, help='Number of epochs')
     parser.add_argument('-s', '--loss', default='categoricalCrossEntropy', help='Loss function')
     parser.add_argument('-b', '--batch_size', type=int, default=256, help='Size of the batch')
-    parser.add_argument('-r', '--learning_rate', type=float, default=0.005, help='Learning rate')
+    parser.add_argument('-r', '--learning_rate', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--adam', action='store_true', help='Use Adam optimizer instead of SGD')
     args = parser.parse_args()
 
